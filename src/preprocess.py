@@ -1,87 +1,101 @@
-"""
-preprocess.py
-
-Aeriscan AI
--------------
-Converts raw DICOM chest X-rays into PNG images
-and generates binary labels for pneumothorax detection.
-
-Label logic:
-- EncodedPixels == "-1" → No pneumothorax (0)
-- Otherwise → Pneumothorax present (1)
-"""
-
 import os
+import warnings
 import pandas as pd
-import numpy as np
 import pydicom
-from PIL import Image
 from tqdm import tqdm
 
-RAW_DIR = "data/raw"
-IMAGE_DIR = "data/images"
-LABELS_PATH = "data/labels.csv"
-TRAIN_CSV = "data/train-rle.csv"
+# -----------------------------
+# Settings
+# -----------------------------
+RAW_DICOM_DIR = "data/raw"
+LABELS_CSV = "data/labels.csv"
+OUTPUT_CSV = "data/processed_labels.csv"
 
-os.makedirs(IMAGE_DIR, exist_ok=True)
-
-
-def dicom_to_png(dcm_path: str, png_path: str):
-    """Convert a DICOM image to normalized PNG"""
-    dcm = pydicom.dcmread(dcm_path)
-    image = dcm.pixel_array.astype(np.float32)
-
-    # Normalize to 0–255
-    image -= image.min()
-    image /= image.max()
-    image *= 255.0
-
-    image = image.astype(np.uint8)
-    Image.fromarray(image).convert("L").save(png_path)
-
+# -----------------------------
+# Quiet the noisy pydicom warnings (the "Invalid VR UI" spam)
+# -----------------------------
+warnings.filterwarnings(
+    "ignore",
+    message=r"Invalid value for VR UI.*",
+    category=UserWarning,
+    module=r"pydicom.*",
+)
 
 def main():
-    df = pd.read_csv(TRAIN_CSV)
+    if not os.path.exists(LABELS_CSV):
+        raise FileNotFoundError(f"Missing {LABELS_CSV}. Run: python src/build_labels.py")
 
-    # Recursively index all DICOM files
-    dicom_index = {}
+    if not os.path.isdir(RAW_DICOM_DIR):
+        raise FileNotFoundError(f"Missing folder {RAW_DICOM_DIR}. Put .dcm files inside it.")
 
-    for root, _, files in os.walk(RAW_DIR):
-        for file in files:
-            if file.endswith(".dcm"):
-                key = os.path.splitext(file)[0]
-                dicom_index[key] = os.path.join(root, file)
+    print("[INFO] Loading labels.csv...")
+    labels_df = pd.read_csv(LABELS_CSV)
 
-    print(f"[INFO] Found {len(dicom_index)} DICOM files")
+    # Ensure correct columns exist
+    if "ImageId" not in labels_df.columns or "Label" not in labels_df.columns:
+        raise ValueError("labels.csv must have columns: ImageId, Label")
 
-    # Create binary labels
-    df["label"] = df["EncodedPixels"].apply(
-        lambda x: 0 if x == "-1" else 1
-    )
+    # Map: SOPInstanceUID (ImageId) -> label (0/1)
+    label_map = dict(zip(labels_df["ImageId"].astype(str), labels_df["Label"].astype(int)))
+    print(f"[INFO] Loaded labels for {len(label_map)} unique images")
 
-    samples = []
+    # Collect all .dcm paths (fast)
+    dcm_paths = []
+    with os.scandir(RAW_DICOM_DIR) as it:
+        for entry in it:
+            if entry.is_file() and entry.name.lower().endswith(".dcm"):
+                dcm_paths.append(entry.path)
 
-    for _, row in tqdm(df.iterrows(), total=len(df)):
-        image_id = row["ImageId"]
-        label = row["label"]
+    print(f"[INFO] Found {len(dcm_paths)} DICOM files in {RAW_DICOM_DIR}")
 
-        if image_id not in dicom_index:
-            continue  # skip safely
+    records = []
+    read_fail = 0
+    uid_missing = 0
+    not_in_labels = 0
+    matched = 0
 
-        dcm_file = dicom_index[image_id]
-        png_file = os.path.join(IMAGE_DIR, f"{image_id}.png")
+    print("[INFO] Reading DICOM headers + matching SOPInstanceUID...")
+    for dcm_path in tqdm(dcm_paths):
+        try:
+            # Read ONLY metadata (fastest); stop before pixels
+            dcm = pydicom.dcmread(dcm_path, stop_before_pixels=True, force=True)
+        except Exception:
+            read_fail += 1
+            continue
 
-        if not os.path.exists(png_file):
-            dicom_to_png(dcm_file, png_file)
+        uid = getattr(dcm, "SOPInstanceUID", None)
+        if not uid:
+            uid_missing += 1
+            continue
 
-        samples.append({
-            "image": f"{image_id}.png",
-            "label": label
+        uid = str(uid)
+
+        if uid not in label_map:
+            not_in_labels += 1
+            continue
+
+        # ✅ Match
+        matched += 1
+        records.append({
+            "dicom_path": dcm_path,
+            "uid": uid,
+            "label": int(label_map[uid]),
         })
 
-    pd.DataFrame(samples).to_csv(LABELS_PATH, index=False)
-    print(f"[✓] Saved {len(samples)} samples to {LABELS_PATH}")
+    out_df = pd.DataFrame(records)
+    out_df.to_csv(OUTPUT_CSV, index=False)
 
+    print("\n================ SUMMARY ================")
+    print(f"[✓] Saved {len(out_df)} matched samples to {OUTPUT_CSV}")
+    print(f"Matched: {matched}")
+    print(f"Read failures: {read_fail}")
+    print(f"Missing SOPInstanceUID: {uid_missing}")
+    print(f"UID not in labels.csv: {not_in_labels}")
+    print("========================================\n")
+
+    # Only print label counts if we actually have rows
+    if len(out_df) > 0:
+        print(out_df["label"].value_counts())
 
 if __name__ == "__main__":
     main()
