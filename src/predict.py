@@ -1,67 +1,86 @@
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
-from torchvision import models
+from torchvision import models, transforms
 from PIL import Image
+import os
+
+# ---------------- CONFIG ----------------
+MODEL_PATH = "models/aeriscan_pneumonia.pth"
+DEVICE = "cpu"
+CLASS_NAMES = ["Normal", "Pneumonia"]
 
 # ----------------------------------------
-# Load trained pneumonia model (1-channel)
-# ----------------------------------------
-def load_model(model_path="models/aeriscan_pneumonia.pth"):
+
+def load_model():
+    # Build SAME model as training
     model = models.resnet18(weights=None)
 
-    # IMPORTANT: match training architecture
+    # 1-channel input (grayscale)
     model.conv1 = nn.Conv2d(
-        in_channels=1,
-        out_channels=64,
-        kernel_size=7,
-        stride=2,
-        padding=3,
-        bias=False
+        1, 64, kernel_size=7, stride=2, padding=3, bias=False
     )
 
+    # 2-class output
     model.fc = nn.Linear(model.fc.in_features, 2)
 
-    state_dict = torch.load(model_path, map_location="cpu")
-    model.load_state_dict(state_dict)
-
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+    model.to(DEVICE)
     model.eval()
     return model
 
 
-# ----------------------------------------
-# Predict pneumonia from X-ray
-# ----------------------------------------
 def predict_image(image_path):
-    model = load_model()
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
     transform = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
         transforms.Resize((224, 224)),
-        transforms.Grayscale(num_output_channels=1),  # 🔥 IMPORTANT
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5], std=[0.5])
     ])
 
-    image = Image.open(image_path).convert("L")
-    image = transform(image).unsqueeze(0)
+    image = Image.open(image_path).convert("RGB")
+    image = transform(image).unsqueeze(0).to(DEVICE)
+
+    model = load_model()
 
     with torch.no_grad():
         outputs = model(image)
         probs = torch.softmax(outputs, dim=1)
 
-    pneumonia_prob = probs[0, 1].item()
-    prediction = "PNEUMONIA" if pneumonia_prob >= 0.5 else "NORMAL"
+        confidence, pred_class = torch.max(probs, dim=1)
 
-    return prediction, pneumonia_prob
+    diagnosis = CLASS_NAMES[pred_class.item()]
+    confidence = confidence.item()
+
+    # Risk interpretation
+    p_pneumonia = probs[0][1].item()
+
+    if p_pneumonia < 0.35:
+        diagnosis = "Normal"
+        confidence = 1 - p_pneumonia
+        risk = "Low risk"
+
+    elif p_pneumonia > 0.75:
+        diagnosis = "Pneumonia"
+        confidence = p_pneumonia
+        risk = "High risk — seek medical evaluation"
+
+    else:
+        diagnosis = "Uncertain"
+        confidence = p_pneumonia
+        risk = "Indeterminate — clinical review recommended"
 
 
-# ----------------------------------------
-# CLI test
-# ----------------------------------------
+    return diagnosis, confidence, risk
+
+
 if __name__ == "__main__":
-    img_path = "sample2.jpg"  # make sure this exists
-    pred, conf = predict_image(img_path)
+    img_path = input("Enter path to chest X-ray image: ").strip()
+    diagnosis, confidence, risk = predict_image(img_path)
 
-    print(f"\n🩺 Aeriscan AI Result")
-    print(f"Prediction : {pred}")
-    print(f"Confidence : {conf:.3f}")
+    print("\n=== AERISCAN AI RESULT ===")
+    print(f"Diagnosis : {diagnosis}")
+    print(f"Confidence: {confidence:.2%}")
+    print(f"Assessment: {risk}")

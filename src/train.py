@@ -1,62 +1,133 @@
-"""
-train.py
-Laptop-safe training for Pneumonia detection
-"""
-
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms, models
 from tqdm import tqdm
 
-from model import get_model
-from dataset import get_loaders
+# ================= CONFIG =================
+DATA_ROOT = "data/chest_xray"
+TRAIN_DIR = os.path.join(DATA_ROOT, "train")
+VAL_DIR = os.path.join(DATA_ROOT, "val")
+MODEL_DIR = "models"
 
+BATCH_SIZE = 8        # Laptop-safe
+EPOCHS = 6            # Keep <= 8
+LR = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-EPOCHS = 3               # 🔽 Reduced
-LEARNING_RATE = 1e-4
-CHECKPOINT_PATH = "models/aeriscan_pneumonia.pth"
 
-def train():
-    train_loader, val_loader, _ = get_loaders()
+os.makedirs(MODEL_DIR, exist_ok=True)
 
-    model = get_model().to(DEVICE)
+# ================= TRANSFORMS =================
+train_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.Grayscale(num_output_channels=1),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5], std=[0.5])
+])
 
-    # 🔒 Freeze backbone (massive speed + stability boost)
-    for param in model.parameters():
-        param.requires_grad = False
+val_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.Grayscale(num_output_channels=1),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5], std=[0.5])
+])
 
-    # Only train classifier head
-    for param in model.fc.parameters():
-        param.requires_grad = True
+# ================= DATASETS =================
+train_dataset = datasets.ImageFolder(TRAIN_DIR, transform=train_transform)
+val_dataset = datasets.ImageFolder(VAL_DIR, transform=val_transform)
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.fc.parameters(), lr=LEARNING_RATE)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-    for epoch in range(EPOCHS):
-        model.train()
-        running_loss = 0.0
+print("[INFO] Classes:", train_dataset.classes)
+print("[INFO] Training samples:", len(train_dataset))
+print("[INFO] Validation samples:", len(val_dataset))
 
-        loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
-        for images, labels in loop:
+# ================= CLASS WEIGHTS =================
+labels = [label for _, label in train_dataset.samples]
+neg = labels.count(0)
+pos = labels.count(1)
+
+weight_for_0 = 1.0
+weight_for_1 = neg / pos
+class_weights = torch.tensor([weight_for_0, weight_for_1]).to(DEVICE)
+
+# ================= MODEL =================
+model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+
+# 1-channel input
+model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+# Binary output
+model.fc = nn.Linear(512, 2)
+model = model.to(DEVICE)
+
+criterion = nn.CrossEntropyLoss(weight=class_weights)
+optimizer = optim.Adam(model.parameters(), lr=LR)
+
+# ================= TRAINING =================
+best_val_loss = float("inf")
+
+for epoch in range(EPOCHS):
+    model.train()
+    train_loss = 0.0
+
+    loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
+    for images, labels in loop:
+        images, labels = images.to(DEVICE), labels.to(DEVICE)
+
+        optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        train_loss += loss.item()
+        loop.set_postfix(loss=loss.item())
+
+    avg_train_loss = train_loss / len(train_loader)
+
+    # ===== Validation =====
+    model.eval()
+    val_loss = 0.0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for images, labels in val_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
-
-            optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            val_loss += loss.item()
 
-            running_loss += loss.item()
-            loop.set_postfix(loss=loss.item())
+            preds = torch.argmax(outputs, dim=1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
 
-        avg_loss = running_loss / len(train_loader)
-        print(f"Epoch {epoch+1} Average Loss: {avg_loss:.4f}")
+    avg_val_loss = val_loss / len(val_loader)
+    val_acc = correct / total * 100
 
-        # 💾 SAVE CHECKPOINT EACH EPOCH
-        torch.save(model.state_dict(), CHECKPOINT_PATH)
-        print(f"[✓] Checkpoint saved after epoch {epoch+1}")
+    print(f"\nEpoch {epoch+1} Summary:")
+    print(f"Train Loss: {avg_train_loss:.4f}")
+    print(f"Val Loss:   {avg_val_loss:.4f}")
+    print(f"Val Acc:    {val_acc:.2f}%")
 
-    print("✅ Training complete")
+    # Save checkpoint
+    torch.save(
+        model.state_dict(),
+        f"{MODEL_DIR}/aeriscan_epoch_{epoch+1}.pth"
+    )
 
-if __name__ == "__main__":
-    train()
+    if avg_val_loss < best_val_loss:
+        best_val_loss = avg_val_loss
+        torch.save(
+            model.state_dict(),
+            f"{MODEL_DIR}/aeriscan_best.pth"
+        )
+        print("[✓] Best model updated")
+
+print("\n[✓] Training complete")
+print("[✓] Best model saved as models/aeriscan_best.pth")
