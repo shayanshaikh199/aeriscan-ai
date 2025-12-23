@@ -1,115 +1,115 @@
-# app.py
-# Aeriscan AI – Pneumonia Detection Streamlit App
-
-import os
 import streamlit as st
 import torch
-import torchvision.transforms as transforms
+import torch.nn.functional as F
+from torchvision import models, transforms
 from PIL import Image
-from src.model import get_model
 
-# ========================
-# App Config
-# ========================
+# =========================
+# CONFIG
+# =========================
+MODEL_PATH = "models/aeriscan_best.pth"
+DEVICE = "cpu"
+
 st.set_page_config(
     page_title="Aeriscan AI",
     page_icon="🫁",
     layout="centered"
 )
 
-MODEL_PATH = "models/aeriscan_best.pth"
-
-# ========================
-# Load Model (cached)
-# ========================
+# =========================
+# LOAD MODEL (MATCH TRAINING)
+# =========================
 @st.cache_resource
 def load_model():
-    if not os.path.exists(MODEL_PATH):
-        st.error(f"❌ Model file not found at: `{MODEL_PATH}`")
-        st.stop()
+    model = models.resnet18(weights=None)
 
-    model = get_model()
-    model.load_state_dict(
-        torch.load(MODEL_PATH, map_location="cpu")
+    # 🔴 CRITICAL: grayscale model (1 channel)
+    model.conv1 = torch.nn.Conv2d(
+        1, 64, kernel_size=7, stride=2, padding=3, bias=False
     )
+
+    # Binary classifier (Normal vs Pneumonia)
+    model.fc = torch.nn.Linear(model.fc.in_features, 2)
+
+    state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
+    model.load_state_dict(state_dict)
+
     model.eval()
+    model.to(DEVICE)
+
     return model
 
-model = load_model()
 
-# ========================
-# Image Transform
-# ========================
+# =========================
+# IMAGE TRANSFORM (MATCH TRAINING)
+# =========================
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
-    transforms.Grayscale(num_output_channels=1),
+    transforms.Grayscale(num_output_channels=1),  # 🔴 MUST be 1
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
-# ========================
-# UI
-# ========================
+
+# =========================
+# PREDICTION
+# =========================
+def predict_image(image: Image.Image):
+    model = load_model()
+
+    image = transform(image).unsqueeze(0).to(DEVICE)
+
+    with torch.no_grad():
+        output = model(image)            # shape: [1, 2]
+        probs = F.softmax(output, dim=1)
+
+        normal_prob = probs[0, 0].item()
+        pneumonia_prob = probs[0, 1].item()
+
+    if pneumonia_prob >= 0.5:
+        diagnosis = "Pneumonia"
+        confidence = pneumonia_prob
+        risk = "High" if confidence > 0.8 else "Moderate"
+    else:
+        diagnosis = "Normal"
+        confidence = normal_prob
+        risk = "Low"
+
+    return diagnosis, confidence, risk
+
+
+# =========================
+# STREAMLIT UI
+# =========================
 st.title("🫁 Aeriscan AI")
-st.subheader("AI-powered Pneumonia Assessment from Chest X-rays")
-
-st.markdown("""
-Upload a chest X-ray image and Aeriscan AI will analyze it for **pneumonia-related patterns**.
-
-⚠️ *This tool is for educational and research purposes only.*
-""")
+st.subheader("AI-Powered Chest X-Ray Pneumonia Detection")
 
 uploaded_file = st.file_uploader(
-    "Upload Chest X-ray (JPG or PNG)",
+    "Upload a chest X-ray image (JPG / PNG)",
     type=["jpg", "jpeg", "png"]
 )
 
-# ========================
-# Prediction
-# ========================
-if uploaded_file is not None:
+if uploaded_file:
     image = Image.open(uploaded_file).convert("L")
-    st.image(image, caption="Uploaded X-ray", use_column_width=True)
+    st.image(image, caption="Uploaded Chest X-ray", use_container_width=True)
 
-    if st.button("Analyze X-ray"):
-        with st.spinner("Analyzing image..."):
-            input_tensor = transform(image).unsqueeze(0)
+    if st.button("Analyze"):
+        with st.spinner("Analyzing X-ray..."):
+            diagnosis, confidence, risk = predict_image(image)
 
-            with torch.no_grad():
-                output = model(input_tensor)
-                prob = torch.sigmoid(output).item()
+        st.markdown("---")
+        st.subheader("🩺 Result")
 
-            # Thresholds
-            if prob >= 0.7:
-                diagnosis = "Pneumonia Detected"
-                risk = "High"
-                color = "red"
-            elif prob >= 0.4:
-                diagnosis = "Uncertain Findings"
-                risk = "Medium"
-                color = "orange"
-            else:
-                diagnosis = "No Pneumonia Detected"
-                risk = "Low"
-                color = "green"
+        if diagnosis == "Pneumonia":
+            st.error(f"**Diagnosis:** {diagnosis}")
+        else:
+            st.success(f"**Diagnosis:** {diagnosis}")
 
-            st.markdown("---")
-            st.subheader("🧪 AI Assessment")
+        st.write(f"**Confidence:** {confidence * 100:.2f}%")
+        st.write(f"**Risk Level:** {risk}")
 
-            st.markdown(
-                f"""
-                **Diagnosis:** <span style="color:{color}; font-weight:bold;">{diagnosis}</span><br>
-                **Confidence:** {prob * 100:.1f}%<br>
-                **Risk Level:** {risk}
-                """,
-                unsafe_allow_html=True
-            )
+        st.progress(confidence)
 
-            st.progress(min(max(prob, 0.0), 1.0))
-
-            st.markdown("""
-            ---
-            ⚠️ **Disclaimer:**  
-            This AI model does **not** provide medical diagnoses.  
-            Always consult a qualified healthcare professional.
-            """)
+        st.caption(
+            "⚠️ Educational use only. Not a medical diagnosis."
+        )
