@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
 import ResultCard from "./components/ResultCard"
+import "./App.css"
 
 type ApiResult = {
   diagnosis: string
@@ -44,7 +45,7 @@ export default function App() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || `Backend error (${res.status})`)
+        throw new Error(text || "Backend error")
       }
 
       const data = (await res.json()) as ApiResult
@@ -58,24 +59,24 @@ export default function App() {
 
   return (
     <div className="page">
-      <header className="nav">
-        <div className="navInner">
-          <div className="navBrand">Aeriscan AI</div>
-          <div className="navTag">Educational demo</div>
-        </div>
+      {/* TOP BAR */}
+      <header className="topbar">
+        <div className="brand">Aeriscan AI</div>
+        <div className="tag">Educational demo</div>
       </header>
 
-      <main className="wrap">
+      <main className="container">
+        {/* HERO */}
         <section className="hero">
-          <h1 className="title">Chest X-ray Analyzer</h1>
-          <p className="subtitle">
-            Upload an image and get a pneumonia vs normal prediction.
-            <span className="muted"> Educational use only.</span>
+          <h1>Chest X-ray Analyzer</h1>
+          <p className="sub">
+            Upload a chest X-ray image to receive a Pneumonia vs Normal prediction.
           </p>
         </section>
 
+        {/* UPLOAD CARD */}
         <section className="card">
-          <div className="actions">
+          <div className="uploader">
             <input
               id="file"
               type="file"
@@ -83,11 +84,15 @@ export default function App() {
               onChange={(e) => onPick(e.target.files?.[0] ?? null)}
             />
 
-            <label htmlFor="file" className="pill ghost">
+            <label htmlFor="file" className="btn secondary">
               Choose image
             </label>
 
-            <button className="pill primary" disabled={!canAnalyze} onClick={analyze}>
+            <button
+              className="btn primary"
+              disabled={!canAnalyze}
+              onClick={analyze}
+            >
               {loading ? "Analyzing..." : "Analyze"}
             </button>
           </div>
@@ -100,9 +105,8 @@ export default function App() {
         </section>
 
         {error && (
-          <div className="error">
-            <div className="errorTitle">Something went wrong</div>
-            <div className="errorMsg">{error}</div>
+          <div className="errorBox">
+            <strong>Something went wrong:</strong> {error}
           </div>
         )}
 
@@ -114,10 +118,9 @@ export default function App() {
           />
         )}
 
-        <footer className="foot">
-          <div className="footText">
-            Educational use only. Not a medical diagnosis.
-          </div>
+        {/* FOOTER */}
+        <footer className="footer">
+          Aeriscan AI · Created by Shayan Shaikh
         </footer>
       </main>
     </div>
