@@ -1,64 +1,36 @@
-from __future__ import annotations
-
-from pathlib import Path
-
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
-import io
+from model import load_model, predict_image_bytes
 
-from model import load_model, predict_pneumonia, risk_from_confidence
+app = FastAPI(title="Aeriscan API")
 
-APP_NAME = "Aeriscan AI API"
-MODEL_PATH = Path(__file__).parent / "models" / "aeriscan_best.pth"
-
-app = FastAPI(title=APP_NAME)
-
-# Allow your frontend dev server
+# Allow your React frontend to call the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load once at startup (fast predictions)
-MODEL = None
+# Load once at startup (fast)
+MODEL = load_model()
 
-@app.on_event("startup")
-def _startup():
-    global MODEL
-    MODEL = load_model(MODEL_PATH)
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "Aeriscan backend running. Use POST /analyze"}
 
-@app.get("/health")
-def health():
-    return {"status": "ok", "model_loaded": MODEL is not None}
-
-@app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+@app.post("/analyze")
+async def analyze(file: UploadFile = File(...)):
     """
-    Upload an X-ray image (jpg/png). Returns JSON.
-    Educational use only. Not a medical diagnosis.
+    Accepts an uploaded image (jpg/png) and returns JSON:
+    { diagnosis: "Normal"|"Pneumonia", confidence: 0-100, risk: "Low"|"Medium"|"High" }
     """
-    if MODEL is None:
-        return {"error": "Model not loaded"}
-
-    raw = await file.read()
-    try:
-        img = Image.open(io.BytesIO(raw))
-    except Exception:
-        return {"error": "Invalid image file. Please upload a JPG/PNG image."}
-
-    diagnosis, confidence = predict_pneumonia(MODEL, img)
-    risk = risk_from_confidence(diagnosis, confidence)
+    image_bytes = await file.read()
+    diagnosis, confidence_pct, risk = predict_image_bytes(image_bytes, MODEL)
 
     return {
         "diagnosis": diagnosis,
-        "confidence": round(confidence, 4),   # 0..1
-        "risk": risk,
-        "disclaimer": "Educational use only. Not a medical diagnosis."
+        "confidence": confidence_pct,
+        "risk": risk
     }
