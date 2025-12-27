@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+
 type Props = {
   diagnosis: string
   confidence: number
@@ -5,35 +7,56 @@ type Props = {
 }
 
 export default function ResultCard({ diagnosis, confidence, risk }: Props) {
-  const pct = Math.round(confidence * 100)
+  const [displayValue, setDisplayValue] = useState(0)
+
+  const percent = Math.round(confidence * 100)
   const isNormal = diagnosis === "Normal"
 
+  useEffect(() => {
+    let start = 0
+    const duration = 900
+    const stepTime = 16
+    const steps = duration / stepTime
+    const increment = percent / steps
+
+    const timer = setInterval(() => {
+      start += increment
+      if (start >= percent) {
+        start = percent
+        clearInterval(timer)
+      }
+      setDisplayValue(Math.round(start))
+    }, stepTime)
+
+    return () => clearInterval(timer)
+  }, [percent])
+
   return (
-    <section className="card result">
-      <div className={`badge ${isNormal ? "good" : "bad"}`}>
+    <section className="card resultCard">
+      <div className={`pill ${isNormal ? "pillNormal" : "pillBad"}`}>
         {diagnosis}
       </div>
 
       <div className="resultGrid">
-        <div className="stat">
+        <div>
           <div className="label">Confidence</div>
-          <div className="value">{pct}%</div>
+          <div className="confidenceValue">{displayValue}%</div>
         </div>
 
-        <div className="stat">
+        <div>
           <div className="label">Risk Level</div>
-          <div className="value">{risk}</div>
+          <div className="riskValue">{risk}</div>
         </div>
       </div>
 
-      <div className="barBg">
+      <div className="progressTrack">
         <div
-          className={`barFill ${isNormal ? "fillGood" : "fillBad"}`}
-          style={{ width: `${pct}%` }}
+          className={`progressFill ${isNormal ? "good" : "bad"}`}
+          style={{ width: `${displayValue}%` }}
         />
       </div>
 
-      <div className="fineprint">
+      <div className="disclaimerSmall">
         Educational use only. Not a medical diagnosis.
       </div>
     </section>
