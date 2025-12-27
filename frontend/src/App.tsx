@@ -6,6 +6,7 @@ type ApiResult = {
   diagnosis: string
   confidence: number
   risk: string
+  heatmap?: string
 }
 
 export default function App() {
@@ -59,14 +60,12 @@ export default function App() {
 
   return (
     <div className="page">
-      {/* TOP BAR */}
       <header className="topbar">
         <div className="brand">Aeriscan AI</div>
         <div className="tag">Educational demo</div>
       </header>
 
       <main className="container">
-        {/* HERO */}
         <section className="hero">
           <h1>Chest X-ray Analyzer</h1>
           <p className="sub">
@@ -74,7 +73,6 @@ export default function App() {
           </p>
         </section>
 
-        {/* UPLOAD CARD */}
         <section className="card">
           <div className="uploader">
             <input
@@ -89,6 +87,7 @@ export default function App() {
             </label>
 
             <button
+              type="button"
               className="btn primary"
               disabled={!canAnalyze}
               onClick={analyze}
@@ -98,8 +97,16 @@ export default function App() {
           </div>
 
           {preview && (
-            <div className="previewWrap">
-              <img className="preview" src={preview} alt="X-ray preview" />
+            <div className="overlayWrap">
+              <img className="xray" src={preview} alt="X-ray preview" />
+
+              {result?.heatmap && (
+                <img
+                  className="heatmap"
+                  src={`data:image/png;base64,${result.heatmap}`}
+                  alt="Grad-CAM heatmap"
+                />
+              )}
             </div>
           )}
         </section>
@@ -118,7 +125,6 @@ export default function App() {
           />
         )}
 
-        {/* FOOTER */}
         <footer className="footer">
           Aeriscan AI · Created by Shayan Shaikh
         </footer>
