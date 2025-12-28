@@ -1,0 +1,117 @@
+.resultCard {
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  margin-top: 24px;
+}
+
+.resultHeader {
+  margin-bottom: 16px;
+}
+
+.pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.pill.danger {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.pill.safe {
+  background: rgba(52, 199, 89, 0.12);
+  color: #34c759;
+}
+
+.metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.metric {
+  position: relative;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  color: #888;
+}
+
+.value {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* ===== TOOLTIP ===== */
+
+.tooltipWrap {
+  cursor: help;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+
+  padding: 12px 14px;
+  width: 260px;
+
+  font-size: 13px;
+  line-height: 1.4;
+  color: #fff;
+
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  background: rgba(0, 0, 0, 0.75);
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 10;
+}
+
+.tooltip.danger {
+  background: rgba(255, 59, 48, 0.9);
+}
+
+.tooltip.safe {
+  background: rgba(52, 199, 89, 0.9);
+}
+
+.tooltipWrap:hover .tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ===== CONFIDENCE BAR ===== */
+
+.confidenceBar {
+  margin-top: 18px;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #eee;
+}
+
+.confidenceBar .fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+.confidenceBar.danger .fill {
+  background: linear-gradient(90deg, #ff3b30, #ff7a70);
+}
+
+.confidenceBar.safe .fill {
+  background: linear-gradient(90deg, #34c759, #6be58b);
+}

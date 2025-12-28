@@ -216,3 +216,42 @@ input[type="file"] {
   color: #9ca3af;
   margin-top: 12px;
 }
+
+.overlayWrap {
+  position: relative;
+  margin-top: 20px;
+}
+
+.xray {
+  width: 100%;
+  border-radius: 16px;
+}
+
+.heatmapWrap {
+  position: absolute;
+  inset: 0;
+}
+
+.heatmap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.45;
+  border-radius: 16px;
+  mix-blend-mode: multiply;
+  transition: opacity 0.2s ease;
+}
+
+.heatmapWrap:hover .heatmap {
+  opacity: 0.6;
+}
+
+/* Color modes */
+.heatmap.red {
+  filter: hue-rotate(-20deg) saturate(160%);
+}
+
+.heatmap.green {
+  filter: hue-rotate(90deg) saturate(140%);
+}
