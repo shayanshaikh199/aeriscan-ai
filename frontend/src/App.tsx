@@ -108,12 +108,20 @@ export default function App() {
               <img className="xray" src={preview} alt="X-ray preview" />
 
               {result?.heatmap && (
-                <div className="heatmapWrap" title={tooltipText}>
+                <div className="heatmapWrap">
                   <img
-                    className={overlayClass}
+                    className={`heatmap ${
+                      result.diagnosis === "Pneumonia" ? "red" : "green"
+                    }`}
                     src={`data:image/png;base64,${result.heatmap}`}
                     alt="Grad-CAM heatmap"
                   />
+
+
+                  <div className="heatmapTooltip">
+                    Highlighted areas indicate regions that most influenced
+                    the model’s prediction.
+                  </div>
                 </div>
               )}
             </div>

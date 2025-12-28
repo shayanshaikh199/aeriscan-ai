@@ -105,16 +105,6 @@ input[type="file"] {
   border: 1px solid #d2d2d7;
 }
 
-/* PREVIEW */
-.previewWrap {
-  margin-top: 20px;
-}
-
-.preview {
-  width: 100%;
-  border-radius: 14px;
-}
-
 /* ERROR */
 .errorBox {
   background: #fff1f2;
@@ -217,6 +207,8 @@ input[type="file"] {
   margin-top: 12px;
 }
 
+/* ===============================
+   XRAY + HEATMAP OVERLAY (FIXED)
 .overlayWrap {
   position: relative;
   margin-top: 20px;
@@ -225,26 +217,32 @@ input[type="file"] {
 .xray {
   width: 100%;
   border-radius: 16px;
+  display: block;
 }
 
+/* Heatmap container */
 .heatmapWrap {
   position: absolute;
   inset: 0;
+  z-index: 2;
 }
 
+/* Heatmap image */
 .heatmap {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.45;
   border-radius: 16px;
+
+  opacity: 0.45;
   mix-blend-mode: multiply;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
+/* Hover boost */
 .heatmapWrap:hover .heatmap {
-  opacity: 0.6;
+  opacity: 0.65;
 }
 
 /* Color modes */
@@ -255,3 +253,6 @@ input[type="file"] {
 .heatmap.green {
   filter: hue-rotate(90deg) saturate(140%);
 }
+
+/* ===============================
+   APPLE-STYLE HEATMAP TOOLTIP
