@@ -209,8 +209,6 @@ input[type="file"] {
 
 /* ===============================
    XRAY + HEATMAP OVERLAY (FIXED)
-================================ */
-
 .overlayWrap {
   position: relative;
   margin-top: 20px;
@@ -258,38 +256,3 @@ input[type="file"] {
 
 /* ===============================
    APPLE-STYLE HEATMAP TOOLTIP
-================================ */
-
-.heatmapTooltip {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  width: 280px;
-  padding: 14px 18px;
-
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-
-  font-size: 13px;
-  color: #111;
-  text-align: center;
-  line-height: 1.4;
-
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
-
-  opacity: 0;
-  pointer-events: none;
-  z-index: 3;
-
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-
-.heatmapWrap:hover .heatmapTooltip {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
