@@ -3,7 +3,7 @@ import ResultCard from "./components/ResultCard"
 import "./App.css"
 
 type ApiResult = {
-  diagnosis: string
+  diagnosis: "Pneumonia" | "Normal"
   confidence: number
   risk: string
   heatmap?: string
@@ -58,6 +58,14 @@ export default function App() {
     }
   }
 
+  const overlayClass =
+    result?.diagnosis === "Pneumonia" ? "heatmap red" : "heatmap green"
+
+  const tooltipText =
+    result?.diagnosis === "Pneumonia"
+      ? "Highlighted areas indicate regions that most influenced the model’s pneumonia prediction."
+      : "Highlighted areas indicate regions that most influenced the model’s normal prediction."
+
   return (
     <div className="page">
       <header className="topbar">
@@ -87,7 +95,6 @@ export default function App() {
             </label>
 
             <button
-              type="button"
               className="btn primary"
               disabled={!canAnalyze}
               onClick={analyze}
