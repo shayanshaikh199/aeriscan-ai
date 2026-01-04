@@ -14,3 +14,14 @@ Features
 -Professional hover tooltip explaining heatmap meaning
 -FastAPI backend with Swagger documentation
 -Fully responsive React + TypeScript frontend
+
+How It Works 
+-User uploads a chest X-ray image
+-Image is sent to the FastAPI backend
+-A trained PyTorch CNN model processes the image
+
+The model:
+-Predicts the class (Pneumonia or Normal)
+-Calculates confidence
+-Generates a Grad-CAM heatmap
+-The frontend overlays the heatmap on the X-ray and displays results
