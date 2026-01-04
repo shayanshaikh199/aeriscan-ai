@@ -110,17 +110,13 @@ export default function App() {
               {result?.heatmap && (
                 <div className="heatmapWrap">
                   <img
-                    className={`heatmap ${
-                      result.diagnosis === "Pneumonia" ? "red" : "green"
-                    }`}
+                    className={`heatmap ${result.risk === "High" ? "red" : "green"}`}
                     src={`data:image/png;base64,${result.heatmap}`}
                     alt="Grad-CAM heatmap"
                   />
 
-
                   <div className="heatmapTooltip">
-                    Highlighted areas indicate regions that most influenced
-                    the model’s prediction.
+                    Highlighted areas show regions that most influenced the model’s prediction.
                   </div>
                 </div>
               )}
