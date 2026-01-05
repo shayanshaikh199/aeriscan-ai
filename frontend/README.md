@@ -38,6 +38,7 @@ Frontend
 -Vite
 -CSS 
 
+
 Running the Project Locally
     Backend Setup:
      cd backend
