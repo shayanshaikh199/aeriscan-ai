@@ -36,7 +36,7 @@ Frontend
 -React
 -TypeScript
 -Vite
--CSS (Apple-style UI)
+-CSS 
 
 Running the Project Locally
     Backend Setup:
