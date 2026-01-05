@@ -6,7 +6,7 @@ The system provides a confidence score, risk level, and a visual explanation usi
 
 # Features
 
-Upload chest X-ray images through a clean, Apple-style UI
+Upload chest X-ray images through a clean, stylish UI
 
 AI model predicts Pneumonia vs Normal
 
@@ -68,11 +68,16 @@ Vite
 CSS
 
 # Running the Project Locally
-Backend Setup
+## Backend Setup
+
 cd backend
+
 python -m venv .venv
+
 .venv\Scripts\activate   # Windows
+
 pip install -r requirements.txt
+
 uvicorn main:app --reload
 
 
@@ -82,9 +87,12 @@ http://127.0.0.1:8000
 Swagger docs available at:
 http://127.0.0.1:8000/docs
 
-Frontend Setup
+## Frontend Setup
+
 cd frontend
+
 npm install
+
 npm run dev
 
 
@@ -97,7 +105,7 @@ Red overlay → Model detected features consistent with pneumonia
 
 Green overlay → Model detected features consistent with normal lungs
 
-Heatmaps highlight regions the model focused on — not exact pathology
+Heatmaps highlight regions the model focused on, not exact pathology
 
 Hover over the image to view an explanatory tooltip
 
