@@ -1,11 +1,10 @@
-🩺 Aeriscan AI
+# Aeriscan AI
 
 Aeriscan AI is a full-stack medical imaging web application that analyzes chest X-ray images and predicts whether pneumonia is present.
 The system provides a confidence score, risk level, and a visual explanation using Grad-CAM heatmaps to show which regions of the image most influenced the model’s prediction.
 
-⚠️ Educational use only. Not a medical diagnosis.
 
-✨ Features
+# Features
 
 Upload chest X-ray images through a clean, Apple-style UI
 
@@ -17,9 +16,9 @@ Risk level classification (Low / Moderate / High)
 
 Grad-CAM heatmap overlay for visual explainability
 
-🔴 Red heatmap for pneumonia predictions
+Red heatmap for pneumonia predictions
 
-🟢 Green heatmap for normal predictions
+Green heatmap for normal predictions
 
 Professional hover tooltip explaining heatmap meaning
 
@@ -27,7 +26,7 @@ FastAPI backend with interactive Swagger documentation
 
 Fully responsive React + TypeScript frontend
 
-🧠 How It Works
+# How It Works
 
 The user uploads a chest X-ray image
 
@@ -35,7 +34,7 @@ The image is sent to the FastAPI backend
 
 A trained PyTorch CNN processes the image
 
-The model:
+# The model:
 
 Predicts the class (Pneumonia or Normal)
 
@@ -45,8 +44,8 @@ Generates a Grad-CAM heatmap
 
 The frontend overlays the heatmap on the X-ray and displays the results in real time.
 
-🛠️ Tech Stack
-Backend
+# Tech Stack
+## Backend
 
 Python
 
@@ -58,7 +57,7 @@ Grad-CAM
 
 Uvicorn
 
-Frontend
+## Frontend
 
 React
 
@@ -68,7 +67,7 @@ Vite
 
 CSS
 
-▶️ Running the Project Locally
+# Running the Project Locally
 Backend Setup
 cd backend
 python -m venv .venv
@@ -92,16 +91,16 @@ npm run dev
 The frontend will run at:
 http://localhost:5173
 
-🎨 Heatmap Explanation
+# Heatmap Explanation
 
-🔴 Red overlay → Model detected features consistent with pneumonia
+Red overlay → Model detected features consistent with pneumonia
 
-🟢 Green overlay → Model detected features consistent with normal lungs
+Green overlay → Model detected features consistent with normal lungs
 
 Heatmaps highlight regions the model focused on — not exact pathology
 
 Hover over the image to view an explanatory tooltip
 
-👤 Author
+# Author
 
 Created by Shayan Shaikh
