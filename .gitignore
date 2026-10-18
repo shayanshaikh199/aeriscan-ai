@@ -1,17 +1,26 @@
-# Python
-__pycache__/
-*.pyc
-
-# Virtual environment
+# Local dependencies and build output
 .venv/
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.tmp/
 
-# Data
-data/raw/
-data/images/
+# Local configuration
+.env
+.env.*
+!.env.example
+.vercel/
 
-# Models
+# Datasets and training checkpoints
+backend/data/
+data/
 models/*.pth
+!models/aeriscan_best.pth
 
-# OS
+# OS files
 .DS_Store
+__MACOSX/
+._*
 Thumbs.db

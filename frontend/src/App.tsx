@@ -39,7 +39,7 @@ export default function App() {
       const form = new FormData()
       form.append("file", file)
 
-      const res = await fetch("/api/analyze", {
+      const res = await fetch(`${(import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "")}/api/analyze`, {
         method: "POST",
         body: form,
       })
@@ -51,20 +51,12 @@ export default function App() {
 
       const data = (await res.json()) as ApiResult
       setResult(data)
-    } catch (e: any) {
-      setError(e?.message ?? "Something went wrong")
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong")
     } finally {
       setLoading(false)
     }
   }
-
-  const overlayClass =
-    result?.diagnosis === "Pneumonia" ? "heatmap red" : "heatmap green"
-
-  const tooltipText =
-    result?.diagnosis === "Pneumonia"
-      ? "Highlighted areas indicate regions that most influenced the model’s pneumonia prediction."
-      : "Highlighted areas indicate regions that most influenced the model’s normal prediction."
 
   return (
     <div className="page">
