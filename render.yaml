@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: aeriscan-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false

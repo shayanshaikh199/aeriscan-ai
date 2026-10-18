@@ -1,0 +1,12 @@
+.git
+.venv
+**/.venv
+**/__pycache__
+**/.pytest_cache
+frontend
+backend/data
+data
+.tmp
+.env
+**/.env
+models/aeriscan_epoch_*.pth
