@@ -42,7 +42,7 @@ Expect `diagnosis`, `confidence` (0–1), and a base64 PNG `heatmap`. Sample fil
 - **Frontend works locally but analysis fails after deployment:** configure `VITE_API_URL` and rebuild the frontend. The Vite proxy only runs in development.
 - **CORS error:** add the exact frontend origin to `ALLOWED_ORIGINS` and redeploy the backend. Include preview origins individually when needed.
 - **503 on `/ready`:** inspect backend startup logs and verify the checkpoint path and architecture. Do not substitute random weights.
-- **First request is slow:** some hosts suspend idle services. The browser allows up to two minutes per analysis; use an always-on service if you need consistent latency.
+- **First request is slow:** some hosts suspend idle services. Allow the service to wake up and retry if needed; use an always-on service if you need consistent latency.
 - **Out of memory:** increase the backend memory allocation and keep one worker. Measure resident memory under concurrent uploads before choosing a plan.
 
 The file-content read is bounded to 5 MB and decoded images to 20 million pixels (Pillow's warning threshold). Multipart parsing happens before the handler, so also configure an ingress request-size limit and rate limiting at your chosen host for an exposed service. Images may be temporarily spooled by the multipart parser; the upload handle is closed after each request. The app does not write a persistent upload directory or log image contents.
