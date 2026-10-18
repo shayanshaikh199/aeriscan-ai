@@ -39,6 +39,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -t aeriscan-api .
       - run: docker run -d --name aeriscan-api -p 127.0.0.1:8000:8000 aeriscan-api
-      - run: curl --retry 20 --retry-connrefused --retry-delay 2 --fail http://127.0.0.1:8000/ready
+      - run: curl --retry 30 --retry-all-errors --retry-max-time 90 --retry-delay 2 --fail http://127.0.0.1:8000/ready
       - if: always()
         run: docker logs aeriscan-api
