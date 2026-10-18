@@ -1,8 +1,11 @@
 name: CI
 on:
   push:
-    branches: [main, codex/deployment-readiness]
+    branches: [main]
   pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
